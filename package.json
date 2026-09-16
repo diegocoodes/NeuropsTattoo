@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "npm run build && tsx watch server/index.ts",
-    "build": "prisma generate && vite build && node scripts/embed-static.mjs",
+    "build": "prisma generate && vite build && node scripts/embed-static.mjs && node scripts/hostinger-routes.mjs",
     "start": "tsx server/index.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

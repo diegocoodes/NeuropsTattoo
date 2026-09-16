@@ -44,6 +44,6 @@ O arquivo `.env` contém a conexão com o banco e as credenciais do painel e do 
 
 ### Domínio na Hostinger
 
-`neurops.com.br` ainda serve uma cópia estática do site na Hostinger. O arquivo `public/.htaccess` é copiado para `dist/.htaccess` pelo build e redireciona `/login` e `/admin` para a aplicação no Prisma Compute, onde o painel consegue acessar a API e manter a sessão. O arquivo precisa estar na raiz publicada (`public_html`) para a regra funcionar. O antigo `vercel.json` só se aplica à Vercel.
+`neurops.com.br` ainda serve uma cópia estática do site na Hostinger. O build copia `public/.htaccess` para `dist/.htaccess` e também gera `dist/login/index.html` e `dist/admin/index.html` como alternativa para hospedagens que não aplicam as regras do Apache. Essas rotas redirecionam para a aplicação no Prisma Compute, onde o painel consegue acessar a API e manter a sessão. Publique todo o conteúdo de `dist` na raiz do site (`public_html`). O antigo `vercel.json` só se aplica à Vercel.
 
 O conteúdo salvo no painel ainda não aparece na cópia estática da Hostinger, pois `/api/content` não existe nela. Para que todo o site use o mesmo banco e permaneça em `neurops.com.br`, configure esse domínio como domínio personalizado da aplicação no Prisma Compute e altere os registros DNS na Hostinger para o destino indicado pelo Prisma. Depois de verificar o domínio e o HTTPS, a cópia estática da Hostinger deixa de ser necessária.

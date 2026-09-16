@@ -1,0 +1,7 @@
+{
+  "app": {
+    "framework": "bun",
+    "entry": "server/index.ts",
+    "httpPort": 3000
+  }
+}

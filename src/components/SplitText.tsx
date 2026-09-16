@@ -1,4 +1,4 @@
-import { useRef, useEffect, type JSX } from "react";
+import { useRef, useEffect, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -33,12 +33,12 @@ export default function SplitText({
   to?: gsap.TweenVars;
   threshold?: number;
   rootMargin?: string;
-  textAlign?: string;
-  tag?: keyof JSX.IntrinsicElements;
+  textAlign?: CSSProperties["textAlign"];
+  tag?: "p" | "h1";
   onLetterAnimationComplete?: () => void;
   showCallback?: boolean;
 }) {
-  const ref = useRef(null);
+  const ref = useRef<HTMLParagraphElement | HTMLHeadingElement>(null);
   const completedRef = useRef(false);
 
   useEffect(() => {

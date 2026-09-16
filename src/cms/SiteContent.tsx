@@ -3,11 +3,9 @@ import {
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useState,
   type ReactNode,
 } from "react";
-import valdirImage from "../assets/valdir.jpg";
 
 export type PortfolioItem = { title: string; image: string; category: string };
 export type ServiceItem = { title: string; description: string };
@@ -66,7 +64,7 @@ export const defaultContent: SiteContent = {
       "Projetos exclusivos criados para transformar referências, histórias e ideias em tatuagens com identidade.",
     primaryButton: "Agendar pelo WhatsApp",
     secondaryButton: "Ver trabalhos",
-    image: valdirImage,
+    image: "/valdir.jpg",
     imageAlt: "Valdir Neto, tatuador Neurops",
   },
   about: {
@@ -142,90 +140,44 @@ export const defaultContent: SiteContent = {
   },
 };
 
-const STORAGE_KEY = "neurops-site-content-v1";
-
 type SiteContentContextValue = {
   content: SiteContent;
-  setContent: (content: SiteContent) => void;
-  resetContent: () => void;
+  loading: boolean;
+  setContent: (content: SiteContent) => Promise<void>;
+  resetContent: () => Promise<void>;
 };
 
 const SiteContentContext = createContext<SiteContentContextValue | null>(null);
 
-function loadContent(): SiteContent {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return defaultContent;
-    const parsed = JSON.parse(saved) as Partial<SiteContent>;
-    const hero = { ...defaultContent.hero, ...parsed.hero };
-    const about = { ...defaultContent.about, ...parsed.about };
-    const portfolio = { ...defaultContent.portfolio, ...parsed.portfolio };
-    const services = { ...defaultContent.services, ...parsed.services };
-    const contact = { ...defaultContent.contact, ...parsed.contact };
-    const location = { ...defaultContent.location, ...parsed.location };
-    if (hero.description.includes("tatuador desde 2015") || hero.description.includes("realismo preto e cinza")) hero.description = defaultContent.hero.description;
-    if (hero.eyebrow.includes("•") || hero.eyebrow.toLowerCase().includes("realismo preto e cinza")) hero.eyebrow = defaultContent.hero.eyebrow;
-    if (about.description.includes("tatuador desde 2015") || about.description.startsWith("Valdir Neto desenvolve trabalhos autorais")) {
-      about.title = defaultContent.about.title;
-      about.description = defaultContent.about.description;
-    }
-    if (portfolio.description.startsWith("Seleção de tatuagens")) {
-      portfolio.title = defaultContent.portfolio.title;
-      portfolio.description = defaultContent.portfolio.description;
-    }
-    if (services.description.startsWith("Trabalhos autorais e personalizados")) {
-      services.title = defaultContent.services.title;
-      services.description = defaultContent.services.description;
-      services.items = defaultContent.services.items;
-    }
-    if (contact.description.startsWith("Atendimento direto para orçamento")) {
-      contact.title = defaultContent.contact.title;
-      contact.description = defaultContent.contact.description;
-    }
-    if (location.description.startsWith("Atendimento com horário marcado")) {
-      location.title = defaultContent.location.title;
-      location.description = defaultContent.location.description;
-    }
-    const savedItems = parsed.portfolio?.items ?? defaultContent.portfolio.items;
-    const items = savedItems.map((item, index) => ({
-      ...item,
-      category: item.category || defaultContent.portfolio.items[index]?.category || "Outros",
-    }));
-    return {
-      ...defaultContent,
-      ...parsed,
-      theme: { ...defaultContent.theme, ...parsed.theme },
-      brand: { ...defaultContent.brand, ...parsed.brand },
-      hero,
-      about,
-      portfolio: { ...portfolio, items },
-      services,
-      contact: {
-        ...contact,
-        specialty: contact.specialty.replace(" • ", " e "),
-      },
-      location: {
-        ...location,
-        address: location.address.replace("Paulista - PE", "Paulista, PE"),
-      },
-    };
-  } catch {
-    return defaultContent;
-  }
-}
-
 export function SiteContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContentState] = useState<SiteContent>(loadContent);
+  const [content, setContentState] = useState<SiteContent>(defaultContent);
+  const [loading, setLoading] = useState(true);
 
-  const setContent = (next: SiteContent) => {
+  useEffect(() => {
+    fetch("/api/content")
+      .then((response) => {
+        if (!response.ok) throw new Error("Falha ao carregar conteúdo");
+        return response.json();
+      })
+      .then(({ content: saved }: { content: SiteContent | null }) => {
+        if (saved) setContentState(saved);
+      })
+      .catch((error) => console.error(error))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const setContent = async (next: SiteContent) => {
+    const response = await fetch("/api/content", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(next),
+    });
+    if (!response.ok) throw new Error("Não foi possível salvar o conteúdo.");
     setContentState(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
 
-  const resetContent = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setContentState(defaultContent);
-  };
+  const resetContent = async () => setContent(defaultContent);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -234,10 +186,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
     root.style.setProperty("--accent", content.theme.accent);
   }, [content.theme]);
 
-  const value = useMemo(
-    () => ({ content, setContent, resetContent }),
-    [content],
-  );
+  const value = { content, loading, setContent, resetContent };
 
   return <SiteContentContext.Provider value={value}>{children}</SiteContentContext.Provider>;
 }

@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useState, type ChangeEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { isAuthenticated, logout } from "../cms/auth";
 import { defaultContent, useSiteContent, type SiteContent } from "../cms/SiteContent";
@@ -12,7 +12,7 @@ const imagePresets = {
   portfolio: { width: 960, height: 540, fit: "cover", description: "horizontal 16:9, corte central" },
 } satisfies Record<string, ImagePreset>;
 
-function formatImage(file: File, preset: ImagePreset): Promise<string> {
+function formatImage(file: File, preset: ImagePreset): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const source = URL.createObjectURL(file);
     const image = new Image();
@@ -35,7 +35,7 @@ function formatImage(file: File, preset: ImagePreset): Promise<string> {
       context.imageSmoothingQuality = "high";
       context.drawImage(image, (preset.width - width) / 2, (preset.height - height) / 2, width, height);
       URL.revokeObjectURL(source);
-      resolve(canvas.toDataURL(preset.fit === "contain" ? "image/png" : "image/webp", 0.86));
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Não foi possível processar a imagem.")), preset.fit === "contain" ? "image/png" : "image/webp", 0.86);
     };
     image.onerror = () => {
       URL.revokeObjectURL(source);
@@ -90,7 +90,12 @@ function ImageField({
     if (!file) return;
     setProcessing(true);
     try {
-      onChange(await formatImage(file, preset));
+      const form = new FormData();
+      form.append("file", await formatImage(file, preset), file.name);
+      const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
+      if (!response.ok) throw new Error("Não foi possível enviar a imagem.");
+      const result = await response.json() as { url: string };
+      onChange(result.url);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível processar a imagem.");
     } finally {
@@ -104,7 +109,7 @@ function ImageField({
       <div className="image-field">
         <img src={value} alt="Pré-visualização" />
         <div>
-          <input value={value.startsWith("data:") ? "Imagem enviada" : value} onChange={(event) => onChange(event.target.value)} disabled={value.startsWith("data:")} />
+          <input value={value} onChange={(event) => onChange(event.target.value)} />
           <label className="upload-button">{processing ? "Formatando..." : "Enviar imagem"}<input type="file" accept="image/*" onChange={upload} disabled={processing} /></label>
           <small className="field-help">Formato automático: {preset.description} ({preset.width} × {preset.height}px).</small>
         </div>
@@ -114,37 +119,55 @@ function ImageField({
 }
 
 export default function Admin() {
-  const { content, setContent, resetContent } = useSiteContent();
+  const { content, loading, setContent, resetContent } = useSiteContent();
   const [draft, setDraft] = useState<SiteContent>(content);
   const [tab, setTab] = useState<Tab>("inicio");
   const [saved, setSaved] = useState(true);
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [saveError, setSaveError] = useState("");
 
-  if (!isAuthenticated()) {
-    window.location.replace("/login");
-    return null;
-  }
+  useEffect(() => {
+    isAuthenticated().then((valid) => {
+      if (!valid) window.location.replace("/login");
+      else setAuthorized(true);
+    });
+  }, []);
+
+  useEffect(() => { setDraft(content); }, [content]);
 
   const update = <K extends keyof SiteContent>(section: K, value: SiteContent[K]) => {
     setDraft((current) => ({ ...current, [section]: value }));
     setSaved(false);
   };
 
-  const save = () => {
-    setContent(draft);
-    setSaved(true);
+  const save = async () => {
+    try {
+      await setContent(draft);
+      setSaved(true);
+      setSaveError("");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Falha ao salvar.");
+    }
   };
 
-  const reset = () => {
+  const reset = async () => {
     if (!window.confirm("Restaurar todo o conteúdo original do site?")) return;
-    resetContent();
-    setDraft(structuredClone(defaultContent));
-    setSaved(true);
+    try {
+      await resetContent();
+      setDraft(structuredClone(defaultContent));
+      setSaved(true);
+      setSaveError("");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Falha ao restaurar.");
+    }
   };
 
-  const signOut = () => {
-    logout();
+  const signOut = async () => {
+    await logout();
     window.location.assign("/login");
   };
+
+  if (!authorized || loading) return null;
 
   const navigation: Array<{ id: Tab; index: string; label: string; description: string }> = [
     { id: "inicio", index: "01", label: "Identidade", description: "Marca, cores e apresentação" },
@@ -173,6 +196,7 @@ export default function Admin() {
         <header className="admin-topbar">
           <div className="admin-heading"><div className="admin-breadcrumb"><span>Painel</span><strong>{navigation.find((item) => item.id === tab)?.label}</strong></div><h1>Central de conteúdo</h1><p className="admin-heading-copy">Edite as informações do site mantendo a identidade visual.</p></div>
           <div className="admin-save-actions">
+            {saveError && <span className="admin-error" role="alert">{saveError}</span>}
             <span className={saved ? "saved-message is-saved" : "saved-message is-pending"}>{saved ? "Tudo salvo" : "Alterações pendentes"}</span>
             <button className="admin-secondary" onClick={reset}>Restaurar</button>
             <button className="admin-primary" onClick={save}>Salvar alterações</button>

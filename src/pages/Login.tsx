@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { isAuthenticated, login } from "../cms/auth";
 import { useSiteContent } from "../cms/SiteContent";
 
@@ -9,18 +9,18 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  if (isAuthenticated()) {
-    window.location.replace("/admin");
-    return null;
-  }
+  useEffect(() => {
+    isAuthenticated().then((valid) => { if (valid) window.location.replace("/admin"); });
+  }, []);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (login(username.trim(), password)) {
+    const result = await login(username.trim(), password);
+    if (result.ok) {
       window.location.assign("/admin");
       return;
     }
-    setError("Usuário ou senha incorretos. Verifique os dados e tente novamente.");
+    setError(result.error);
   };
 
   return (

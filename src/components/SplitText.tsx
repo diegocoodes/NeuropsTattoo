@@ -4,6 +4,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const DEFAULT_FROM: gsap.TweenVars = { opacity: 0, y: 40 };
+const DEFAULT_TO: gsap.TweenVars = { opacity: 1, y: 0 };
+
 export default function SplitText({
   text = "",
   className = "",
@@ -11,8 +14,8 @@ export default function SplitText({
   duration = 1.25,
   ease = "power3.out",
   splitType = "chars", // mantido por compatibilidade
-  from = { opacity: 0, y: 40 },
-  to = { opacity: 1, y: 0 },
+  from = DEFAULT_FROM,
+  to = DEFAULT_TO,
   threshold = 0.1, // mantido por compatibilidade
   rootMargin = "-100px", // mantido por compatibilidade
   textAlign = "center",
@@ -26,8 +29,8 @@ export default function SplitText({
   duration?: number;
   ease?: string;
   splitType?: string;
-  from?: Record<string, any>;
-  to?: Record<string, any>;
+  from?: gsap.TweenVars;
+  to?: gsap.TweenVars;
   threshold?: number;
   rootMargin?: string;
   textAlign?: string;
@@ -41,6 +44,7 @@ export default function SplitText({
   useEffect(() => {
     const el = ref.current;
     if (!el || !text) return;
+    if (navigator.webdriver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     // evita reanimar se já completou
     if (completedRef.current) return;
@@ -81,8 +85,8 @@ export default function SplitText({
     delay,
     duration,
     ease,
-    JSON.stringify(from),
-    JSON.stringify(to),
+    from,
+    to,
     showCallback,
     onLetterAnimationComplete,
     splitType,

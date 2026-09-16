@@ -1,103 +1,81 @@
-// src/components/Navbar.jsx
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useSiteContent } from "../cms/SiteContent";
+
+const links = [
+  ["Sobre", "sobre"],
+  ["Portfólio", "trabalhos"],
+  ["Serviços", "servicos"],
+  ["Contato", "contato"],
+  ["Estúdio", "localizacao"],
+];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [active, setActive] = useState("");
+  const { content } = useSiteContent();
+  const whatsappLink = `https://wa.me/${content.contact.whatsapp}?text=${encodeURIComponent("Olá! Quero conversar sobre um projeto.")}`;
 
-  // trava scroll quando menu abre
   useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => (document.body.style.overflow = "");
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  // fechar ao clicar em um link
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => { if (entry.isIntersecting) setActive(entry.target.id); }),
+      { rootMargin: "-35% 0px -55%", threshold: 0 },
+    );
+    links.forEach(([, id]) => {
+      const section = document.getElementById(id);
+      if (section) observer.observe(section);
+    });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      observer.disconnect();
+    };
+  }, []);
+
   const close = () => setOpen(false);
 
-  return (
-    <header className="navbar">
-      <div className="container navbar-inner">
-        {/* Brand */}
-        <a href="#top" className="brand" aria-label="Neurops Tattoo" onClick={close}>
-          <img
-            src="/logo-neurops.svg"
-            alt="Neurops Tattoo"
-            className="brand-logo"
-            draggable={false}
-          />
-          <div className="brand-text">
-            <span className="brand-title">Neurops</span>
-            <span className="brand-title accent">Tattoo</span>
-          </div>
-        </a>
+  return <><header className={`navbar${scrolled ? " is-scrolled" : ""}`}>
+    <div className="container navbar-inner">
+      <a href="#top" className="brand" aria-label={`${content.brand.name} ${content.brand.suffix}`} onClick={close}>
+        <img src={content.brand.logo} alt="" className="brand-logo" draggable={false} />
+        <div className="brand-text"><span className="brand-title">{content.brand.name}</span><span className="brand-title accent">{content.brand.suffix}</span></div>
+      </a>
 
-        {/* Desktop nav */}
+      <div className="nav-desktop-wrap">
         <nav className="nav nav-desktop" aria-label="Navegação principal">
-          <a href="#sobre">Sobre</a>
-          <a href="#trabalhos">Trabalhos</a>
-          <a href="#servicos">Serviços</a>
-          <a href="#contato">Contato</a>
-          <a href="#localizacao" className="nav-cta">
-            Localização
-          </a>
+          {links.map(([label, id]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""}>{label}</a>)}
         </nav>
-
-        {/* Mobile button */}
-        <button
-          className="nav-toggle"
-          type="button"
-          aria-label={open ? "Fechar menu" : "Abrir menu"}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <span className={open ? "bar bar1 open" : "bar bar1"} />
-          <span className={open ? "bar bar2 open" : "bar bar2"} />
-          <span className={open ? "bar bar3 open" : "bar bar3"} />
-        </button>
+        <a className="nav-action" href={whatsappLink} target="_blank" rel="noreferrer">Agendar</a>
       </div>
 
-      {/* Mobile drawer */}
-      <div className={open ? "mobile-drawer open" : "mobile-drawer"} role="dialog" aria-modal="true">
-        <button className="drawer-backdrop" aria-label="Fechar menu" onClick={close} />
+      <button className="nav-toggle" type="button" aria-label={open ? "Fechar menu" : "Abrir menu"} aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <span className={open ? "bar bar1 open" : "bar bar1"} /><span className={open ? "bar bar2 open" : "bar bar2"} /><span className={open ? "bar bar3 open" : "bar bar3"} />
+      </button>
+    </div>
+  </header>
 
-        <div className="drawer-panel">
-          <div className="drawer-head">
-            <div className="drawer-brand">
-              <img src="/logo-neurops.svg" alt="" className="drawer-logo" />
-              <div className="drawer-brand-text">
-                <div className="drawer-title">
-                  <span>Neurops</span> <span className="accent">Tattoo</span>
-                </div>
-                <div className="drawer-sub">Realismo Preto e Branco • Portrait</div>
-              </div>
-            </div>
-
-            <button className="drawer-close" onClick={close} aria-label="Fechar">
-              ✕
-            </button>
-          </div>
-
-          <nav className="nav-mobile" aria-label="Navegação mobile">
-            <a href="#sobre" onClick={close}>Sobre</a>
-            <a href="#trabalhos" onClick={close}>Trabalhos</a>
-            <a href="#servicos" onClick={close}>Serviços</a>
-            <a href="#contato" onClick={close}>Contato</a>
-            <a href="#localizacao" onClick={close}>Localização</a>
-          </nav>
-
-          <div className="drawer-actions">
-            <a
-              className="btn primary"
-              href="https://wa.me/5581997053551?text=Ol%C3%A1%2C%20Neurops!%20Quero%20agendar%20um%20hor%C3%A1rio."
-              target="_blank"
-              rel="noreferrer"
-              onClick={close}
-            >
-              Agendar no WhatsApp
-            </a>
-          </div>
+    {createPortal(<div className={open ? "mobile-drawer open" : "mobile-drawer"} role="dialog" aria-modal="true" aria-label="Menu principal">
+      <button className="drawer-backdrop" aria-label="Fechar menu" onClick={close} />
+      <div className="drawer-panel">
+        <div className="drawer-head">
+          <a href="#top" className="drawer-brand" onClick={close}><img src={content.brand.logo} alt="" className="drawer-logo" /><div className="drawer-title"><span>{content.brand.name}</span> <span className="accent">{content.brand.suffix}</span></div></a>
+          <button className="drawer-close" onClick={close}>Fechar</button>
         </div>
+        <div className="drawer-intro">
+          <p>Menu</p>
+          <span>Conheça o trabalho, o processo e o estúdio.</span>
+        </div>
+        <nav className="nav-mobile" aria-label="Navegação mobile">{links.map(([label, id]) => <a key={id} href={`#${id}`} className={active === id ? "active" : ""} aria-current={active === id ? "page" : undefined} onClick={close}><span>{label}</span><span className="nav-mobile-line" aria-hidden="true" /></a>)}</nav>
+        <div className="drawer-actions"><a className="btn primary" href={whatsappLink} target="_blank" rel="noreferrer" onClick={close}>{content.hero.primaryButton}</a></div>
       </div>
-    </header>
-  );
+    </div>, document.body)}
+  </>;
 }

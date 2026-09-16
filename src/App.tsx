@@ -1,37 +1,47 @@
+import DarkVeilBackground from "./components/DarkVeilBackground";
 import Navbar from "./components/Navbar";
-// @ts-ignore
 import Hero from "./sections/Hero";
 import Sobre from "./sections/Sobre";
 import Trabalhos from "./sections/Trabalho";
 import Servicos from "./sections/Servico";
 import Contato from "./sections/Contato";
 import Localizacao from "./sections/Localizacao";
+import Login from "./pages/Login";
+import Admin from "./pages/Admin";
+import { useSiteContent } from "./cms/SiteContent";
+import SiteIntro from "./components/SiteIntro";
+import SiteMotion from "./components/SiteMotion";
 
 export default function App() {
+  const { content } = useSiteContent();
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+
+  if (path === "/login") return <Login />;
+  if (path === "/admin") return <Admin />;
+
+  const whatsappLink = `https://wa.me/${content.contact.whatsapp}?text=${encodeURIComponent(
+    "Olá! Quero agendar um horário. Posso enviar minha referência e medidas?",
+  )}`;
+
   return (
-    <>
-      <Navbar />
-
-      <main>
-        <Hero />
-        <Sobre />
-        <Trabalhos />
-        <Servicos />
-        <Contato />
-        <Localizacao />
-      </main>
-
-      {/* CTA fixo WhatsApp */}
-      <a
-        className="whatsapp-float"
-        href="https://wa.me/5581997053551?text=Ol%C3%A1%2C%20Neurops!%20Quero%20fazer%20uma%20tatuagem%20em%20realismo%20preto%20e%20cinza.%20Posso%20te%20enviar%20minha%20refer%C3%AAncia%20para%20or%C3%A7amento%3F"
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Agendar pelo WhatsApp"
-        title="Agendar pelo WhatsApp"
-      >
-        Agendar no WhatsApp
-      </a>
-    </>
+    <div style={{ position: "relative", minHeight: "100vh" }}>
+      <SiteIntro />
+      <SiteMotion />
+      <DarkVeilBackground />
+      <div style={{ position: "relative", zIndex: 10 }}>
+        <Navbar />
+        <main>
+          <Hero />
+          <Sobre />
+          <Trabalhos />
+          <Servicos />
+          <Contato />
+          <Localizacao />
+        </main>
+        <a className="whatsapp-float" href={whatsappLink} target="_blank" rel="noreferrer">
+          {content.hero.primaryButton}
+        </a>
+      </div>
+    </div>
   );
 }

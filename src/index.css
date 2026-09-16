@@ -1402,6 +1402,7 @@ body{
 .portfolio-categories button:hover,
 .portfolio-categories button.active{ color: #fff; }
 .portfolio-categories button.active::after{ transform: scaleX(1); }
+.portfolio-empty{ grid-column: 1 / -1; padding: 34px 0; color: #85817a; font-size: .86rem; }
 
 .works-grid{
   animation: portfolioIn .45s cubic-bezier(.2,.8,.2,1) both;

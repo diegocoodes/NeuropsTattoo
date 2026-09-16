@@ -24,7 +24,7 @@ export type SiteContent = {
     imageAlt: string;
   };
   about: { eyebrow: string; title: string; description: string; secondary: string };
-  portfolio: { eyebrow: string; title: string; description: string; items: PortfolioItem[] };
+  portfolio: { eyebrow: string; title: string; description: string; categories: string[]; items: PortfolioItem[] };
   services: { eyebrow: string; title: string; description: string; items: ServiceItem[] };
   contact: {
     eyebrow: string;
@@ -80,6 +80,7 @@ export const defaultContent: SiteContent = {
     title: "Trabalhos selecionados",
     description:
       "Uma seleção de projetos autorais, retratos e composições realistas. Explore as categorias para conhecer diferentes abordagens de textura, profundidade e acabamento.",
+    categories: ["Realismo", "Retratos", "Autorais"],
     items: [
       { image: "/portfolio/work-1.jpg", title: "Realismo Preto e Branco", category: "Realismo" },
       { image: "/portfolio/work-3.jpg", title: "Portrait", category: "Retratos" },
@@ -149,21 +150,73 @@ type SiteContentContextValue = {
 
 const SiteContentContext = createContext<SiteContentContextValue | null>(null);
 
+const computeOrigin = "https://s7e3a4d13fr61lrhlifcxim6.ewr.prisma.build";
+const publicApiOrigin = ["neurops.com.br", "www.neurops.com.br"].includes(window.location.hostname)
+  ? computeOrigin
+  : "";
+
+function apiUrl(path: string) {
+  return `${publicApiOrigin}${path}`;
+}
+
+function mediaUrl(value: string) {
+  return publicApiOrigin && value.startsWith("/api/media/") ? `${publicApiOrigin}${value}` : value;
+}
+
+function normalizeContent(saved: SiteContent): SiteContent {
+  const items = Array.isArray(saved.portfolio?.items) ? saved.portfolio.items : defaultContent.portfolio.items;
+  const savedCategories = (saved.portfolio as SiteContent["portfolio"] | undefined)?.categories;
+  const categories = Array.isArray(savedCategories)
+    ? savedCategories.filter((category) => typeof category === "string" && category.trim()).map((category) => category.trim())
+    : Array.from(new Set(items.map((item) => item.category).filter(Boolean)));
+
+  return {
+    ...defaultContent,
+    ...saved,
+    theme: { ...defaultContent.theme, ...saved.theme },
+    brand: {
+      ...defaultContent.brand,
+      ...saved.brand,
+      logo: mediaUrl(saved.brand?.logo ?? defaultContent.brand.logo),
+      symbol: mediaUrl(saved.brand?.symbol ?? defaultContent.brand.symbol),
+    },
+    hero: {
+      ...defaultContent.hero,
+      ...saved.hero,
+      image: mediaUrl(saved.hero?.image ?? defaultContent.hero.image),
+    },
+    portfolio: {
+      ...defaultContent.portfolio,
+      ...saved.portfolio,
+      categories: Array.from(new Set(categories)),
+      items: items.map((item) => ({ ...item, image: mediaUrl(item.image) })),
+    },
+    services: { ...defaultContent.services, ...saved.services },
+    contact: { ...defaultContent.contact, ...saved.contact },
+    location: { ...defaultContent.location, ...saved.location },
+  };
+}
+
 export function SiteContentProvider({ children }: { children: ReactNode }) {
   const [content, setContentState] = useState<SiteContent>(defaultContent);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/content")
-      .then((response) => {
-        if (!response.ok) throw new Error("Falha ao carregar conteúdo");
-        return response.json();
-      })
-      .then(({ content: saved }: { content: SiteContent | null }) => {
-        if (saved) setContentState(saved);
-      })
-      .catch((error) => console.error(error))
-      .finally(() => setLoading(false));
+    const loadContent = () => fetch(apiUrl("/api/content"), { cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) throw new Error("Falha ao carregar conteúdo");
+          return response.json();
+        })
+        .then(({ content: saved }: { content: SiteContent | null }) => {
+          if (saved) setContentState(normalizeContent(saved));
+        })
+        .catch((error) => console.error(error));
+
+    loadContent().finally(() => setLoading(false));
+    if (window.location.pathname.startsWith("/admin")) return;
+    const refresh = () => { void loadContent(); };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
   }, []);
 
   const setContent = async (next: SiteContent) => {
@@ -174,7 +227,8 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify(next),
     });
     if (!response.ok) throw new Error("Não foi possível salvar o conteúdo.");
-    setContentState(next);
+    const result = await response.json().catch(() => null) as { content?: SiteContent } | null;
+    setContentState(normalizeContent(result?.content ?? next));
   };
 
   const resetContent = async () => setContent(defaultContent);

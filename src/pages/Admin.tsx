@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { Tabs } from "@base-ui/react/tabs";
 import { isAuthenticated, logout } from "../cms/auth";
 import { defaultContent, useSiteContent, type SiteContent } from "../cms/SiteContent";
@@ -43,6 +43,15 @@ function formatImage(file: File, preset: ImagePreset): Promise<Blob> {
     };
     image.src = source;
   });
+}
+
+async function uploadImage(file: File, preset: ImagePreset) {
+  const form = new FormData();
+  form.append("file", await formatImage(file, preset), file.name);
+  const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
+  const result = await response.json().catch(() => null) as { url?: string; error?: string } | null;
+  if (!response.ok || !result?.url) throw new Error(result?.error || "Não foi possível enviar a imagem.");
+  return result.url;
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -90,12 +99,7 @@ function ImageField({
     if (!file) return;
     setProcessing(true);
     try {
-      const form = new FormData();
-      form.append("file", await formatImage(file, preset), file.name);
-      const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
-      if (!response.ok) throw new Error("Não foi possível enviar a imagem.");
-      const result = await response.json() as { url: string };
-      onChange(result.url);
+      onChange(await uploadImage(file, preset));
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível processar a imagem.");
     } finally {
@@ -118,11 +122,144 @@ function ImageField({
   );
 }
 
+function PortfolioEditor({
+  portfolio,
+  onChange,
+}: {
+  portfolio: SiteContent["portfolio"];
+  onChange: (portfolio: SiteContent["portfolio"]) => void;
+}) {
+  const [newCategory, setNewCategory] = useState("");
+  const [uploadCategory, setUploadCategory] = useState(portfolio.categories[0] ?? "");
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (!portfolio.categories.includes(uploadCategory)) setUploadCategory(portfolio.categories[0] ?? "");
+  }, [portfolio.categories, uploadCategory]);
+
+  const addCategory = (event: FormEvent) => {
+    event.preventDefault();
+    const category = newCategory.trim();
+    if (!category) return;
+    if (portfolio.categories.some((item) => item.toLocaleLowerCase() === category.toLocaleLowerCase())) {
+      window.alert("Essa categoria já existe.");
+      return;
+    }
+    onChange({ ...portfolio, categories: [...portfolio.categories, category] });
+    setUploadCategory(category);
+    setNewCategory("");
+  };
+
+  const renameCategory = (index: number, value: string) => {
+    const previous = portfolio.categories[index];
+    const categories = [...portfolio.categories];
+    categories[index] = value;
+    const items = portfolio.items.map((item) => item.category === previous ? { ...item, category: value } : item);
+    onChange({ ...portfolio, categories, items });
+  };
+
+  const removeCategory = (index: number) => {
+    const removed = portfolio.categories[index];
+    if (!window.confirm(`Excluir a categoria “${removed}”?`)) return;
+    const categories = portfolio.categories.filter((_, itemIndex) => itemIndex !== index);
+    const fallback = categories[0] ?? "";
+    const items = portfolio.items.map((item) => item.category === removed ? { ...item, category: fallback } : item);
+    onChange({ ...portfolio, categories, items });
+  };
+
+  const addImages = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    if (!uploadCategory) {
+      window.alert("Crie uma categoria antes de adicionar imagens.");
+      event.target.value = "";
+      return;
+    }
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(files.map(async (file) => ({
+        title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "),
+        category: uploadCategory,
+        image: await uploadImage(file, imagePresets.portfolio),
+      })));
+      onChange({ ...portfolio, items: [...portfolio.items, ...uploaded] });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não foi possível enviar as imagens.");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const updateItem = (index: number, value: SiteContent["portfolio"]["items"][number]) => {
+    const items = [...portfolio.items];
+    items[index] = value;
+    onChange({ ...portfolio, items });
+  };
+
+  const removeItem = (index: number) => {
+    if (!window.confirm("Remover esta imagem do portfólio?")) return;
+    onChange({ ...portfolio, items: portfolio.items.filter((_, itemIndex) => itemIndex !== index) });
+  };
+
+  return <div className="editor-stack">
+    <section className="editor-card">
+      <h2>Portfólio</h2>
+      <TextField label="Texto superior" value={portfolio.eyebrow} onChange={(eyebrow) => onChange({ ...portfolio, eyebrow })} />
+      <TextField label="Título" value={portfolio.title} onChange={(title) => onChange({ ...portfolio, title })} />
+      <TextArea label="Descrição" value={portfolio.description} onChange={(description) => onChange({ ...portfolio, description })} />
+    </section>
+
+    <section className="editor-card">
+      <div className="editor-card-heading"><div><h2>Categorias</h2><p>Crie os filtros que aparecem acima da galeria.</p></div></div>
+      <div className="category-editor-list">
+        {portfolio.categories.map((category, index) => <div className="category-editor-row" key={index}>
+          <input aria-label={`Nome da categoria ${index + 1}`} value={category} maxLength={40} onChange={(event) => renameCategory(index, event.target.value)} />
+          <button type="button" className="admin-danger-link" onClick={() => removeCategory(index)}>Excluir</button>
+        </div>)}
+        {!portfolio.categories.length && <p className="admin-empty">Nenhuma categoria criada.</p>}
+      </div>
+      <form className="category-add-form" onSubmit={addCategory}>
+        <input value={newCategory} maxLength={40} placeholder="Nome da nova categoria" onChange={(event) => setNewCategory(event.target.value)} />
+        <button type="submit" className="admin-secondary">Criar categoria</button>
+      </form>
+    </section>
+
+    <section className="editor-card portfolio-upload-card">
+      <div className="editor-card-heading"><div><h2>Adicionar imagens</h2><p>Selecione uma categoria e envie uma ou várias imagens de uma vez.</p></div></div>
+      <div className="portfolio-upload-controls">
+        <Field label="Categoria">
+          <select value={uploadCategory} onChange={(event) => setUploadCategory(event.target.value)} disabled={!portfolio.categories.length}>
+            {!portfolio.categories.length && <option value="">Crie uma categoria</option>}
+            {portfolio.categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </Field>
+        <label className="admin-primary portfolio-upload-button">
+          {uploading ? "Enviando imagens..." : "Selecionar imagens"}
+          <input type="file" accept="image/*" multiple onChange={addImages} disabled={uploading || !portfolio.categories.length} />
+        </label>
+      </div>
+    </section>
+
+    {portfolio.items.map((item, index) => <section className="editor-card portfolio-item-card" key={`${item.image}-${index}`}>
+      <div className="editor-card-heading"><h2>Trabalho {index + 1}</h2><button type="button" className="admin-danger-link" onClick={() => removeItem(index)}>Remover imagem</button></div>
+      <TextField label="Título" value={item.title} onChange={(title) => updateItem(index, { ...item, title })} />
+      <Field label="Categoria"><select value={item.category} onChange={(event) => updateItem(index, { ...item, category: event.target.value })}>
+        {!portfolio.categories.includes(item.category) && item.category && <option value={item.category}>{item.category}</option>}
+        <option value="">Sem categoria</option>
+        {portfolio.categories.map((category) => <option key={category} value={category}>{category}</option>)}
+      </select></Field>
+      <ImageField label="Imagem" value={item.image} preset={imagePresets.portfolio} onChange={(image) => updateItem(index, { ...item, image })} />
+    </section>)}
+  </div>;
+}
+
 export default function Admin() {
   const { content, loading, setContent, resetContent } = useSiteContent();
   const [draft, setDraft] = useState<SiteContent>(content);
   const [tab, setTab] = useState<Tab>("inicio");
   const [saved, setSaved] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [saveError, setSaveError] = useState("");
 
@@ -141,12 +278,25 @@ export default function Admin() {
   };
 
   const save = async () => {
+    const categories = Array.from(new Set(draft.portfolio.categories.map((category) => category.trim()).filter(Boolean)));
+    const next = {
+      ...draft,
+      portfolio: {
+        ...draft.portfolio,
+        categories,
+        items: draft.portfolio.items.map((item) => ({ ...item, title: item.title.trim(), category: item.category.trim() })),
+      },
+    };
+    setSaving(true);
     try {
-      await setContent(draft);
+      await setContent(next);
+      setDraft(next);
       setSaved(true);
       setSaveError("");
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Falha ao salvar.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -197,9 +347,9 @@ export default function Admin() {
           <div className="admin-heading"><div className="admin-breadcrumb"><span>Painel</span><strong>{navigation.find((item) => item.id === tab)?.label}</strong></div><h1>Central de conteúdo</h1><p className="admin-heading-copy">Edite as informações do site mantendo a identidade visual.</p></div>
           <div className="admin-save-actions">
             {saveError && <span className="admin-error" role="alert">{saveError}</span>}
-            <span className={saved ? "saved-message is-saved" : "saved-message is-pending"}>{saved ? "Tudo salvo" : "Alterações pendentes"}</span>
+            <span className={saved ? "saved-message is-saved" : "saved-message is-pending"}>{saving ? "Salvando..." : saved ? "Tudo salvo" : "Alterações pendentes"}</span>
             <button className="admin-secondary" onClick={reset}>Restaurar</button>
-            <button className="admin-primary" onClick={save}>Salvar alterações</button>
+            <button className="admin-primary" onClick={save} disabled={saving}>{saving ? "Salvando..." : "Salvar alterações"}</button>
           </div>
         </header>
 
@@ -225,7 +375,7 @@ export default function Admin() {
           <section className="editor-card"><h2>Sobre</h2><TextField label="Texto superior" value={draft.about.eyebrow} onChange={(value) => update("about", { ...draft.about, eyebrow: value })} /><TextField label="Título" value={draft.about.title} onChange={(value) => update("about", { ...draft.about, title: value })} /><TextArea label="Descrição" value={draft.about.description} onChange={(value) => update("about", { ...draft.about, description: value })} /><TextArea label="Texto complementar" value={draft.about.secondary} onChange={(value) => update("about", { ...draft.about, secondary: value })} /></section>
         </div></Tabs.Panel>
 
-        <Tabs.Panel value="portfolio" className="admin-tab-panel"><div className="editor-stack"><section className="editor-card"><h2>Portfólio</h2><TextField label="Texto superior" value={draft.portfolio.eyebrow} onChange={(value) => update("portfolio", { ...draft.portfolio, eyebrow: value })} /><TextField label="Título" value={draft.portfolio.title} onChange={(value) => update("portfolio", { ...draft.portfolio, title: value })} /><TextArea label="Descrição" value={draft.portfolio.description} onChange={(value) => update("portfolio", { ...draft.portfolio, description: value })} /></section>{draft.portfolio.items.map((item, index) => <section className="editor-card" key={index}><h2>Trabalho {index + 1}</h2><TextField label="Título" value={item.title} onChange={(value) => { const items = [...draft.portfolio.items]; items[index] = { ...item, title: value }; update("portfolio", { ...draft.portfolio, items }); }} /><TextField label="Categoria" value={item.category} onChange={(value) => { const items = [...draft.portfolio.items]; items[index] = { ...item, category: value }; update("portfolio", { ...draft.portfolio, items }); }} /><ImageField label="Imagem" value={item.image} preset={imagePresets.portfolio} onChange={(value) => { const items = [...draft.portfolio.items]; items[index] = { ...item, image: value }; update("portfolio", { ...draft.portfolio, items }); }} /></section>)}</div></Tabs.Panel>
+        <Tabs.Panel value="portfolio" className="admin-tab-panel"><PortfolioEditor portfolio={draft.portfolio} onChange={(portfolio) => update("portfolio", portfolio)} /></Tabs.Panel>
 
         <Tabs.Panel value="servicos" className="admin-tab-panel"><div className="editor-stack"><section className="editor-card"><h2>Serviços</h2><TextField label="Texto superior" value={draft.services.eyebrow} onChange={(value) => update("services", { ...draft.services, eyebrow: value })} /><TextField label="Título" value={draft.services.title} onChange={(value) => update("services", { ...draft.services, title: value })} /><TextArea label="Descrição" value={draft.services.description} onChange={(value) => update("services", { ...draft.services, description: value })} /></section>{draft.services.items.map((item, index) => <section className="editor-card" key={index}><h2>Serviço {index + 1}</h2><TextField label="Nome" value={item.title} onChange={(value) => { const items = [...draft.services.items]; items[index] = { ...item, title: value }; update("services", { ...draft.services, items }); }} /><TextArea label="Descrição" value={item.description} onChange={(value) => { const items = [...draft.services.items]; items[index] = { ...item, description: value }; update("services", { ...draft.services, items }); }} /></section>)}</div></Tabs.Panel>
 

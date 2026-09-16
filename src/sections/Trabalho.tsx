@@ -5,13 +5,14 @@ export default function Trabalhos() {
   const { content } = useSiteContent();
   const works = content.portfolio.items;
   const categories = useMemo(
-    () => ["Todos", ...Array.from(new Set(works.map((work) => work.category).filter(Boolean)))],
-    [works],
+    () => ["Todos", ...content.portfolio.categories],
+    [content.portfolio.categories],
   );
   const [category, setCategory] = useState("Todos");
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
-  const visibleWorks = category === "Todos" ? works : works.filter((work) => work.category === category);
+  const activeCategory = categories.includes(category) ? category : "Todos";
+  const visibleWorks = activeCategory === "Todos" ? works : works.filter((work) => work.category === activeCategory);
   const next = () => setIndex((current) => (current + 1) % visibleWorks.length);
   const prev = () => setIndex((current) => (current - 1 + visibleWorks.length) % visibleWorks.length);
 
@@ -41,13 +42,14 @@ export default function Trabalhos() {
         </div>
 
         <nav className="portfolio-categories" aria-label="Categorias de trabalhos" data-reveal>
-          {categories.map((item) => <button key={item} type="button" className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => chooseCategory(item)}>{item}</button>)}
+          {categories.map((item) => <button key={item} type="button" className={activeCategory === item ? "active" : ""} aria-pressed={activeCategory === item} onClick={() => chooseCategory(item)}>{item}</button>)}
         </nav>
 
-        <div className="works-grid" key={category} data-reveal-group>
+        <div className="works-grid" key={activeCategory} data-reveal-group>
           {visibleWorks.map((work, itemIndex) => <button key={`${work.image}-${itemIndex}`} type="button" className="work" aria-label={`Ampliar ${work.title}`} onClick={() => { setIndex(itemIndex); setOpen(true); }} data-reveal-item>
             <img src={work.image} alt={work.title} loading="lazy" />
           </button>)}
+          {!visibleWorks.length && <p className="portfolio-empty">Ainda não há imagens nesta categoria.</p>}
         </div>
       </div>
     </section>

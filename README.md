@@ -17,6 +17,8 @@ O Vite encaminha `/api` para a API local na porta 3000. O login do painel usa `A
 
 O site mostra o conteúdo inicial até que o painel salve um documento no banco. Depois disso, textos, configurações e URLs das imagens ficam disponíveis para todos os visitantes. As imagens enviadas pelo painel vão para o armazenamento de objetos e são servidas pela API.
 
+No painel, a seção Portfólio permite criar, renomear e excluir categorias, enviar várias imagens de uma vez, trocar cada trabalho de categoria e remover imagens. `Salvar alterações` persiste o conteúdo no PostgreSQL; ao abrir ou voltar para a página principal, ela busca a versão mais recente. `Restaurar` grava novamente o conteúdo padrão após confirmação.
+
 ## Comandos
 
 | Comando | Finalidade |

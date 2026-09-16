@@ -1,0 +1,6 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # O painel e a API compartilham a sessão no Prisma Compute.
+  RewriteRule ^(login|admin)/?$ https://s7e3a4d13fr61lrhlifcxim6.ewr.prisma.build/$1 [R=302,L,NE]
+</IfModule>

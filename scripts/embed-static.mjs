@@ -20,6 +20,7 @@ const mimeTypes = {
 
 async function visit(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.name === ".htaccess") continue;
     const filename = join(directory, entry.name);
     if (entry.isDirectory()) { await visit(filename); continue; }
     const route = "/" + relative(root, filename).split(sep).join("/");

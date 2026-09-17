@@ -8,7 +8,21 @@ datasource db {
 }
 
 model SiteDocument {
-  id        String   @id
+  id        String               @id
   content   Json
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime             @updatedAt
+  videos    DemonstrationVideo[]
+}
+
+model DemonstrationVideo {
+  siteId    String
+  position  Int
+  title     String
+  videoUrl  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  site      SiteDocument @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@id([siteId, position])
+  @@index([siteId])
 }

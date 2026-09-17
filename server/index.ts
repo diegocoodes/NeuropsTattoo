@@ -16,6 +16,12 @@ const sessionSeconds = 60 * 60 * 12;
 let prisma: PrismaClient | undefined;
 let storage: S3Client | undefined;
 
+type DemonstrationVideoInput = {
+  position: number;
+  title: string;
+  videoUrl: string;
+};
+
 function db() {
   if (!prisma) {
     const connectionString = process.env.DATABASE_URL;
@@ -60,6 +66,42 @@ function sameSecret(a: string, b: string) {
   return timingSafeEqual(left, right);
 }
 
+function demonstrationVideosFrom(content: unknown): DemonstrationVideoInput[] {
+  if (!content || typeof content !== "object" || Array.isArray(content)) return [];
+  const demonstration = (content as Record<string, unknown>).demonstration;
+  if (!demonstration || typeof demonstration !== "object" || Array.isArray(demonstration)) return [];
+  const items = (demonstration as Record<string, unknown>).items;
+  if (!Array.isArray(items)) return [];
+
+  return items.slice(0, 5).flatMap((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const record = item as Record<string, unknown>;
+    const videoUrl = typeof record.video === "string" ? record.video.trim() : "";
+    if (!videoUrl) return [];
+    return [{
+      position: index + 1,
+      title: typeof record.title === "string" ? record.title.trim() : "",
+      videoUrl,
+    }];
+  });
+}
+
+function contentWithVideos(content: Prisma.JsonValue | null, videos: DemonstrationVideoInput[]) {
+  if (!content || typeof content !== "object" || Array.isArray(content) || !videos.length) return content;
+  const document = content as Prisma.JsonObject;
+  const currentDemonstration = document.demonstration;
+  const demonstration = currentDemonstration && typeof currentDemonstration === "object" && !Array.isArray(currentDemonstration)
+    ? currentDemonstration as Prisma.JsonObject
+    : {};
+  const items = Array.from({ length: 5 }, () => ({ title: "", video: "" }));
+  for (const video of videos) {
+    if (video.position >= 1 && video.position <= 5) {
+      items[video.position - 1] = { title: video.title, video: video.videoUrl };
+    }
+  }
+  return { ...document, demonstration: { ...demonstration, items } };
+}
+
 app.onError((error, c) => {
   console.error(error);
   return c.json({ error: "Erro interno do servidor" }, 500);
@@ -73,8 +115,16 @@ app.use("/api/content", cors({
 
 app.get("/api/content", async (c) => {
   c.header("Cache-Control", "no-store");
-  const document = await db().siteDocument.findUnique({ where: { id: siteId } });
-  return c.json({ content: document?.content ?? null });
+  const [document, videos] = await Promise.all([
+    db().siteDocument.findUnique({ where: { id: siteId } }),
+    db().demonstrationVideo.findMany({ where: { siteId }, orderBy: { position: "asc" } }),
+  ]);
+  const storedVideos = videos.map((video) => ({
+    position: video.position,
+    title: video.title,
+    videoUrl: video.videoUrl,
+  }));
+  return c.json({ content: contentWithVideos(document?.content ?? null, storedVideos) });
 });
 
 app.post("/api/login", async (c) => {
@@ -107,10 +157,19 @@ app.put("/api/content", async (c) => {
   let content: unknown;
   try { content = JSON.parse(raw); } catch { return c.json({ error: "JSON inválido" }, 400); }
   if (!content || typeof content !== "object" || Array.isArray(content)) return c.json({ error: "Conteúdo inválido" }, 400);
-  await db().siteDocument.upsert({
-    where: { id: siteId },
-    create: { id: siteId, content: content as Prisma.InputJsonValue },
-    update: { content: content as Prisma.InputJsonValue },
+  const videos = demonstrationVideosFrom(content);
+  await db().$transaction(async (transaction) => {
+    await transaction.siteDocument.upsert({
+      where: { id: siteId },
+      create: { id: siteId, content: content as Prisma.InputJsonValue },
+      update: { content: content as Prisma.InputJsonValue },
+    });
+    await transaction.demonstrationVideo.deleteMany({ where: { siteId } });
+    if (videos.length) {
+      await transaction.demonstrationVideo.createMany({
+        data: videos.map((video) => ({ ...video, siteId })),
+      });
+    }
   });
   return c.json({ content });
 });

@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useSiteContent, type VideoItem } from "../cms/SiteContent";
 
 function ReelVideo({ item, slot }: { item?: VideoItem; slot: number }) {
-  const [available, setAvailable] = useState(Boolean(item));
+  const [available, setAvailable] = useState(Boolean(item?.video));
 
   return (
     <div className={`reel-slot${available ? " has-video" : ""}`} data-reveal-item>
-      {item && <video
+      {item?.video && <video
         className="reel-video"
         controls
         playsInline
@@ -29,7 +29,7 @@ function ReelVideo({ item, slot }: { item?: VideoItem; slot: number }) {
 export default function Demonstracao() {
   const { content } = useSiteContent();
   const demonstration = content.demonstration;
-  const slots = Array.from({ length: Math.max(3, demonstration.items.length) }, (_, index) => demonstration.items[index]);
+  const slots = Array.from({ length: 5 }, (_, index) => demonstration.items[index]);
 
   return (
     <section className="section section-dark demo-section" id="demonstracao" aria-labelledby="demonstracao-title">
@@ -45,7 +45,7 @@ export default function Demonstracao() {
         </div>
 
         <div className="reels-grid" data-reveal-group>
-          {slots.map((item, index) => <ReelVideo key={item?.video ?? `slot-${index}`} item={item} slot={index + 1} />)}
+          {slots.map((item, index) => <ReelVideo key={`${index}-${item?.video ?? "empty"}`} item={item} slot={index + 1} />)}
         </div>
       </div>
     </section>

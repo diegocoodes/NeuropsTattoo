@@ -5,6 +5,7 @@ import { defaultContent, useSiteContent, type SiteContent } from "../cms/SiteCon
 
 type Tab = "inicio" | "portfolio" | "videos" | "servicos" | "contato";
 type ImagePreset = { width: number; height: number; fit: "cover" | "contain"; description: string };
+const VIDEO_SLOT_COUNT = 5;
 
 const imagePresets = {
   logo: { width: 480, height: 480, fit: "contain", description: "quadrado, sem cortes" },
@@ -272,35 +273,43 @@ function VideoEditor({
   demonstration: SiteContent["demonstration"];
   onChange: (demonstration: SiteContent["demonstration"]) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const slots = Array.from(
+    { length: VIDEO_SLOT_COUNT },
+    (_, index) => demonstration.items[index] ?? { title: "", video: "" },
+  );
 
-  const addVideos = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    if (!files.length) return;
-    setUploading(true);
+  const attachVideo = async (index: number, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingIndex(index);
     try {
-      const uploaded = await Promise.all(files.map(async (file) => ({
+      const uploaded = {
         title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "),
         video: await uploadVideo(file),
-      })));
-      onChange({ ...demonstration, items: [...demonstration.items, ...uploaded] });
+      };
+      const items = [...slots];
+      items[index] = uploaded;
+      onChange({ ...demonstration, items });
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível enviar os vídeos.");
     } finally {
-      setUploading(false);
+      setUploadingIndex(null);
       event.target.value = "";
     }
   };
 
   const updateItem = (index: number, value: SiteContent["demonstration"]["items"][number]) => {
-    const items = [...demonstration.items];
+    const items = [...slots];
     items[index] = value;
     onChange({ ...demonstration, items });
   };
 
-  const removeItem = (index: number) => {
-    if (!window.confirm("Remover este vídeo da seção de demonstração?")) return;
-    onChange({ ...demonstration, items: demonstration.items.filter((_, itemIndex) => itemIndex !== index) });
+  const clearSlot = (index: number) => {
+    if (!window.confirm(`Remover o vídeo ${index + 1} da seção de demonstração?`)) return;
+    const items = [...slots];
+    items[index] = { title: "", video: "" };
+    onChange({ ...demonstration, items });
   };
 
   return <div className="editor-stack">
@@ -312,20 +321,20 @@ function VideoEditor({
     </section>
 
     <section className="editor-card video-upload-card">
-      <div className="editor-card-heading"><div><h2>Adicionar vídeos</h2><p>Envie arquivos verticais no formato Reels. É possível selecionar vários de uma vez.</p></div></div>
-      <label className="admin-primary video-upload-button">
-        {uploading ? "Enviando vídeos..." : "Selecionar vídeos"}
-        <input type="file" accept="video/mp4,video/webm" multiple onChange={addVideos} disabled={uploading} />
-      </label>
+      <div className="editor-card-heading"><div><h2>Os 5 vídeos do site</h2><p>Anexe um vídeo em cada espaço abaixo. Cada posição corresponde ao mesmo espaço na seção de demonstração.</p></div></div>
       <small className="field-help">MP4 ou WebM, proporção recomendada 9:16 e até 50 MB por arquivo.</small>
     </section>
 
-    {!demonstration.items.length && <section className="editor-card"><p className="admin-empty">Nenhum vídeo adicionado. O site exibirá espaços de demonstração até o primeiro envio.</p></section>}
-
     <div className="video-editor-grid">
-      {demonstration.items.map((item, index) => <section className="editor-card video-editor-card" key={`${item.video}-${index}`}>
-        <div className="editor-card-heading"><h2>Vídeo {index + 1}</h2><button type="button" className="admin-danger-link" onClick={() => removeItem(index)}>Remover vídeo</button></div>
-        <video src={item.video} controls playsInline preload="metadata" />
+      {slots.map((item, index) => <section className="editor-card video-editor-card" key={index}>
+        <div className="editor-card-heading"><h2>Vídeo {index + 1} de {VIDEO_SLOT_COUNT}</h2>{item.video && <button type="button" className="admin-danger-link" onClick={() => clearSlot(index)}>Remover vídeo</button>}</div>
+        {item.video
+          ? <video src={item.video} controls playsInline preload="metadata" />
+          : <div className="video-editor-placeholder"><span>Espaço {index + 1}</span><small>Nenhum vídeo anexado</small></div>}
+        <label className="admin-primary video-upload-button">
+          {uploadingIndex === index ? "Enviando vídeo..." : item.video ? "Trocar vídeo" : "Anexar vídeo"}
+          <input type="file" accept="video/mp4,video/webm" onChange={(event) => attachVideo(index, event)} disabled={uploadingIndex !== null} />
+        </label>
         <TextField label="Título acessível" value={item.title} onChange={(title) => updateItem(index, { ...item, title })} />
         <Field label="Endereço do vídeo"><input value={item.video} onChange={(event) => updateItem(index, { ...item, video: event.target.value })} /></Field>
       </section>)}

@@ -359,6 +359,20 @@
   background: #080808;
   object-fit: cover;
 }
+.video-editor-placeholder {
+  width: min(100%, 320px);
+  aspect-ratio: 9 / 16;
+  margin-inline: auto;
+  border: 1px dashed #3d3a36;
+  background: #080808;
+  color: var(--admin-muted);
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+}
+.video-editor-placeholder span { color: #dedbd5; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
+.video-editor-placeholder small { font-size: .7rem; }
 
 @media (prefers-reduced-motion: reduce) {
   .editor-stack { animation: none; }

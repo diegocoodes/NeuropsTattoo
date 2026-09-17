@@ -5,7 +5,7 @@ import { defaultContent, useSiteContent, type SiteContent } from "../cms/SiteCon
 
 type Tab = "inicio" | "portfolio" | "videos" | "servicos" | "contato";
 type ImagePreset = { width: number; height: number; fit: "cover" | "contain"; description: string };
-const VIDEO_SLOT_COUNT = 5;
+const VIDEO_SLOT_COUNT = 3;
 
 const imagePresets = {
   logo: { width: 480, height: 480, fit: "contain", description: "quadrado, sem cortes" },
@@ -321,7 +321,7 @@ function VideoEditor({
     </section>
 
     <section className="editor-card video-upload-card">
-      <div className="editor-card-heading"><div><h2>Os 5 vídeos do site</h2><p>Anexe um vídeo em cada espaço abaixo. Cada posição corresponde ao mesmo espaço na seção de demonstração.</p></div></div>
+      <div className="editor-card-heading"><div><h2>Os 3 vídeos do site</h2><p>Anexe um vídeo em cada espaço abaixo. Cada posição corresponde ao mesmo espaço na seção de demonstração.</p></div></div>
       <small className="field-help">MP4 ou WebM, proporção recomendada 9:16 e até 50 MB por arquivo.</small>
     </section>
 

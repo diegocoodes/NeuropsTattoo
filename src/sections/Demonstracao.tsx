@@ -29,7 +29,7 @@ function ReelVideo({ item, slot }: { item?: VideoItem; slot: number }) {
 export default function Demonstracao() {
   const { content } = useSiteContent();
   const demonstration = content.demonstration;
-  const slots = Array.from({ length: 5 }, (_, index) => demonstration.items[index]);
+  const slots = Array.from({ length: 3 }, (_, index) => demonstration.items[index]);
 
   return (
     <section className="section section-dark demo-section" id="demonstracao" aria-labelledby="demonstracao-title">

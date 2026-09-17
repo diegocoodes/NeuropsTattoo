@@ -16,8 +16,7 @@ export default function Hero() {
       gsap.timeline({ delay: 1.15, defaults: { ease: "power3.out" } })
         .fromTo(".hero-title", { y: 24 }, { y: 0, duration: 0.9 })
         .fromTo(".hero-subtitle", { y: 20 }, { y: 0, duration: 0.8 }, "-=0.4")
-        .fromTo(".hero-actions", { y: 16 }, { y: 0, duration: 0.7 }, "-=0.4")
-        .fromTo(".hero-photo-frame", { y: 18, scale: 0.985 }, { y: 0, scale: 1, duration: 0.8 }, "-=0.5");
+        .fromTo(".hero-actions", { y: 16 }, { y: 0, duration: 0.7 }, "-=0.4");
     }, scopeRef);
     return () => ctx.revert();
   }, []);
@@ -34,9 +33,6 @@ export default function Hero() {
         </div>
         <p className="hero-subtitle">{hero.description}</p>
         <div className="hero-actions"><a className="btn primary" href={whatsappLink} target="_blank" rel="noreferrer">{hero.primaryButton}</a><a className="btn ghost" href="#trabalhos">{hero.secondaryButton}</a></div>
-      </div>
-      <div className="hero-right">
-        <div className="hero-photo-frame"><img src={hero.image} alt={hero.imageAlt} className="hero-photo" loading="eager" /><div className="hero-photo-glow" /></div>
       </div>
     </div>
   </section>;

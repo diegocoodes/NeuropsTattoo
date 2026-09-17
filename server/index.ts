@@ -73,7 +73,7 @@ function demonstrationVideosFrom(content: unknown): DemonstrationVideoInput[] {
   const items = (demonstration as Record<string, unknown>).items;
   if (!Array.isArray(items)) return [];
 
-  return items.slice(0, 5).flatMap((item, index) => {
+  return items.slice(0, 3).flatMap((item, index) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const record = item as Record<string, unknown>;
     const videoUrl = typeof record.video === "string" ? record.video.trim() : "";
@@ -93,9 +93,9 @@ function contentWithVideos(content: Prisma.JsonValue | null, videos: Demonstrati
   const demonstration = currentDemonstration && typeof currentDemonstration === "object" && !Array.isArray(currentDemonstration)
     ? currentDemonstration as Prisma.JsonObject
     : {};
-  const items = Array.from({ length: 5 }, () => ({ title: "", video: "" }));
+  const items = Array.from({ length: 3 }, () => ({ title: "", video: "" }));
   for (const video of videos) {
-    if (video.position >= 1 && video.position <= 5) {
+    if (video.position >= 1 && video.position <= 3) {
       items[video.position - 1] = { title: video.title, video: video.videoUrl };
     }
   }

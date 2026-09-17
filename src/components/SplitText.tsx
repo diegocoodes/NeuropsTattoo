@@ -1,11 +1,12 @@
 import { useRef, useEffect, type CSSProperties } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { canUseMotion } from "../utils/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const DEFAULT_FROM: gsap.TweenVars = { opacity: 0, y: 40 };
-const DEFAULT_TO: gsap.TweenVars = { opacity: 1, y: 0 };
+const DEFAULT_FROM: gsap.TweenVars = { y: 40 };
+const DEFAULT_TO: gsap.TweenVars = { y: 0 };
 
 export default function SplitText({
   text = "",
@@ -44,7 +45,7 @@ export default function SplitText({
   useEffect(() => {
     const el = ref.current;
     if (!el || !text) return;
-    if (navigator.webdriver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!canUseMotion()) return;
 
     // evita reanimar se já completou
     if (completedRef.current) return;

@@ -17,15 +17,20 @@ export default function Trabalhos() {
   const prev = () => setIndex((current) => (current - 1 + visibleWorks.length) % visibleWorks.length);
 
   useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const onKey = (event: KeyboardEvent) => {
-      if (!open) return;
       if (event.key === "Escape") setOpen(false);
-      if (event.key === "ArrowRight") next();
-      if (event.key === "ArrowLeft") prev();
+      if (event.key === "ArrowRight") setIndex((current) => (current + 1) % visibleWorks.length);
+      if (event.key === "ArrowLeft") setIndex((current) => (current - 1 + visibleWorks.length) % visibleWorks.length);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, visibleWorks.length]);
 
   const chooseCategory = (nextCategory: string) => {
     setCategory(nextCategory);

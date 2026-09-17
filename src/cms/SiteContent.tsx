@@ -9,6 +9,7 @@ import {
 
 export type PortfolioItem = { title: string; image: string; category: string };
 export type ServiceItem = { title: string; description: string };
+export type VideoItem = { title: string; video: string };
 
 export type SiteContent = {
   theme: { background: string; text: string; accent: string };
@@ -25,6 +26,7 @@ export type SiteContent = {
   };
   about: { eyebrow: string; title: string; description: string; secondary: string };
   portfolio: { eyebrow: string; title: string; description: string; categories: string[]; items: PortfolioItem[] };
+  demonstration: { eyebrow: string; title: string; description: string; items: VideoItem[] };
   services: { eyebrow: string; title: string; description: string; items: ServiceItem[] };
   contact: {
     eyebrow: string;
@@ -87,6 +89,12 @@ export const defaultContent: SiteContent = {
       { image: "/portfolio/work-2.jpg", title: "Contraste e Textura", category: "Realismo" },
       { image: "/portfolio/work-4.jpg", title: "Projeto Autoral", category: "Autorais" },
     ],
+  },
+  demonstration: {
+    eyebrow: "Vídeos",
+    title: "Demonstração",
+    description: "Registros em vídeo do processo, dos detalhes e do resultado final de cada trabalho.",
+    items: [],
   },
   services: {
     eyebrow: "Especialidades",
@@ -190,6 +198,13 @@ function normalizeContent(saved: SiteContent): SiteContent {
       ...saved.portfolio,
       categories: Array.from(new Set(categories)),
       items: items.map((item) => ({ ...item, image: mediaUrl(item.image) })),
+    },
+    demonstration: {
+      ...defaultContent.demonstration,
+      ...saved.demonstration,
+      items: Array.isArray(saved.demonstration?.items)
+        ? saved.demonstration.items.map((item) => ({ ...item, video: mediaUrl(item.video) }))
+        : [],
     },
     services: { ...defaultContent.services, ...saved.services },
     contact: { ...defaultContent.contact, ...saved.contact },

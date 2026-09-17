@@ -119,12 +119,17 @@ app.post("/api/media", async (c) => {
   if (!authenticated(getCookie(c, cookieName))) return c.json({ error: "Não autorizado" }, 401);
   const form = await c.req.formData();
   const file = form.get("file");
-  if (!(file instanceof File) || !["image/webp", "image/png", "image/jpeg"].includes(file.type)) {
-    return c.json({ error: "Imagem inválida" }, 400);
-  }
-  if (file.size > 2_000_000) return c.json({ error: "Imagem maior que 2 MB" }, 413);
-  const extension = { "image/webp": "webp", "image/png": "png", "image/jpeg": "jpg" }[file.type];
-  const key = `${randomUUID()}.${extension}`;
+  const mediaTypes: Record<string, { extension: string; maxSize: number; label: string }> = {
+    "image/webp": { extension: "webp", maxSize: 2_000_000, label: "Imagem" },
+    "image/png": { extension: "png", maxSize: 2_000_000, label: "Imagem" },
+    "image/jpeg": { extension: "jpg", maxSize: 2_000_000, label: "Imagem" },
+    "video/mp4": { extension: "mp4", maxSize: 50_000_000, label: "Vídeo" },
+    "video/webm": { extension: "webm", maxSize: 50_000_000, label: "Vídeo" },
+  };
+  const media = file instanceof File ? mediaTypes[file.type] : undefined;
+  if (!(file instanceof File) || !media) return c.json({ error: "Arquivo de mídia inválido" }, 400);
+  if (file.size > media.maxSize) return c.json({ error: `${media.label} maior que ${media.maxSize / 1_000_000} MB` }, 413);
+  const key = `${randomUUID()}.${media.extension}`;
   const { client, name } = bucket();
   await client.send(new PutObjectCommand({
     Bucket: name, Key: key, Body: new Uint8Array(await file.arrayBuffer()), ContentType: file.type,
@@ -134,18 +139,23 @@ app.post("/api/media", async (c) => {
 
 app.get("/api/media/:id", async (c) => {
   const key = c.req.param("id");
-  if (!/^[a-f0-9-]{36}\.(webp|png|jpg)$/.test(key)) return c.notFound();
+  if (!/^[a-f0-9-]{36}\.(webp|png|jpg|mp4|webm)$/.test(key)) return c.notFound();
   const { client, name } = bucket();
   try {
-    const media = await client.send(new GetObjectCommand({ Bucket: name, Key: key }));
+    const range = c.req.header("Range");
+    const media = await client.send(new GetObjectCommand({ Bucket: name, Key: key, Range: range }));
     if (!media.Body) return c.notFound();
     const bytes = await media.Body.transformToByteArray();
     const body = new ArrayBuffer(bytes.byteLength);
     new Uint8Array(body).set(bytes);
     return new Response(body, {
+      status: range ? 206 : 200,
       headers: {
         "Content-Type": media.ContentType || "application/octet-stream",
         "Cache-Control": "public, max-age=31536000, immutable",
+        "Accept-Ranges": "bytes",
+        ...(media.ContentLength !== undefined ? { "Content-Length": String(media.ContentLength) } : {}),
+        ...(media.ContentRange ? { "Content-Range": media.ContentRange } : {}),
       },
     });
   } catch (error) {

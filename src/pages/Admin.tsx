@@ -3,7 +3,7 @@ import { Tabs } from "@base-ui/react/tabs";
 import { isAuthenticated, logout } from "../cms/auth";
 import { defaultContent, useSiteContent, type SiteContent } from "../cms/SiteContent";
 
-type Tab = "inicio" | "portfolio" | "servicos" | "contato";
+type Tab = "inicio" | "portfolio" | "videos" | "servicos" | "contato";
 type ImagePreset = { width: number; height: number; fit: "cover" | "contain"; description: string };
 
 const imagePresets = {
@@ -51,6 +51,17 @@ async function uploadImage(file: File, preset: ImagePreset) {
   const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
   const result = await response.json().catch(() => null) as { url?: string; error?: string } | null;
   if (!response.ok || !result?.url) throw new Error(result?.error || "Não foi possível enviar a imagem.");
+  return result.url;
+}
+
+async function uploadVideo(file: File) {
+  if (!["video/mp4", "video/webm"].includes(file.type)) throw new Error("Envie um vídeo MP4 ou WebM.");
+  if (file.size > 50_000_000) throw new Error("O vídeo deve ter no máximo 50 MB.");
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
+  const result = await response.json().catch(() => null) as { url?: string; error?: string } | null;
+  if (!response.ok || !result?.url) throw new Error(result?.error || "Não foi possível enviar o vídeo.");
   return result.url;
 }
 
@@ -254,6 +265,74 @@ function PortfolioEditor({
   </div>;
 }
 
+function VideoEditor({
+  demonstration,
+  onChange,
+}: {
+  demonstration: SiteContent["demonstration"];
+  onChange: (demonstration: SiteContent["demonstration"]) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+
+  const addVideos = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const uploaded = await Promise.all(files.map(async (file) => ({
+        title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "),
+        video: await uploadVideo(file),
+      })));
+      onChange({ ...demonstration, items: [...demonstration.items, ...uploaded] });
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não foi possível enviar os vídeos.");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const updateItem = (index: number, value: SiteContent["demonstration"]["items"][number]) => {
+    const items = [...demonstration.items];
+    items[index] = value;
+    onChange({ ...demonstration, items });
+  };
+
+  const removeItem = (index: number) => {
+    if (!window.confirm("Remover este vídeo da seção de demonstração?")) return;
+    onChange({ ...demonstration, items: demonstration.items.filter((_, itemIndex) => itemIndex !== index) });
+  };
+
+  return <div className="editor-stack">
+    <section className="editor-card">
+      <h2>Seção de vídeos</h2>
+      <TextField label="Texto superior" value={demonstration.eyebrow} onChange={(eyebrow) => onChange({ ...demonstration, eyebrow })} />
+      <TextField label="Título" value={demonstration.title} onChange={(title) => onChange({ ...demonstration, title })} />
+      <TextArea label="Descrição" value={demonstration.description} onChange={(description) => onChange({ ...demonstration, description })} />
+    </section>
+
+    <section className="editor-card video-upload-card">
+      <div className="editor-card-heading"><div><h2>Adicionar vídeos</h2><p>Envie arquivos verticais no formato Reels. É possível selecionar vários de uma vez.</p></div></div>
+      <label className="admin-primary video-upload-button">
+        {uploading ? "Enviando vídeos..." : "Selecionar vídeos"}
+        <input type="file" accept="video/mp4,video/webm" multiple onChange={addVideos} disabled={uploading} />
+      </label>
+      <small className="field-help">MP4 ou WebM, proporção recomendada 9:16 e até 50 MB por arquivo.</small>
+    </section>
+
+    {!demonstration.items.length && <section className="editor-card"><p className="admin-empty">Nenhum vídeo adicionado. O site exibirá espaços de demonstração até o primeiro envio.</p></section>}
+
+    <div className="video-editor-grid">
+      {demonstration.items.map((item, index) => <section className="editor-card video-editor-card" key={`${item.video}-${index}`}>
+        <div className="editor-card-heading"><h2>Vídeo {index + 1}</h2><button type="button" className="admin-danger-link" onClick={() => removeItem(index)}>Remover vídeo</button></div>
+        <video src={item.video} controls playsInline preload="metadata" />
+        <TextField label="Título acessível" value={item.title} onChange={(title) => updateItem(index, { ...item, title })} />
+        <Field label="Endereço do vídeo"><input value={item.video} onChange={(event) => updateItem(index, { ...item, video: event.target.value })} /></Field>
+      </section>)}
+    </div>
+  </div>;
+}
+
 export default function Admin() {
   const { content, loading, setContent, resetContent } = useSiteContent();
   const [draft, setDraft] = useState<SiteContent>(content);
@@ -285,6 +364,10 @@ export default function Admin() {
         ...draft.portfolio,
         categories,
         items: draft.portfolio.items.map((item) => ({ ...item, title: item.title.trim(), category: item.category.trim() })),
+      },
+      demonstration: {
+        ...draft.demonstration,
+        items: draft.demonstration.items.map((item) => ({ ...item, title: item.title.trim() })),
       },
     };
     setSaving(true);
@@ -322,8 +405,9 @@ export default function Admin() {
   const navigation: Array<{ id: Tab; index: string; label: string; description: string }> = [
     { id: "inicio", index: "01", label: "Identidade", description: "Marca, cores e apresentação" },
     { id: "portfolio", index: "02", label: "Portfólio", description: "Galeria de trabalhos" },
-    { id: "servicos", index: "03", label: "Serviços", description: "Especialidades do estúdio" },
-    { id: "contato", index: "04", label: "Contato e local", description: "Canais e endereço" },
+    { id: "videos", index: "03", label: "Vídeos", description: "Demonstrações verticais" },
+    { id: "servicos", index: "04", label: "Serviços", description: "Especialidades do estúdio" },
+    { id: "contato", index: "05", label: "Contato e local", description: "Canais e endereço" },
   ];
 
   return (
@@ -376,6 +460,8 @@ export default function Admin() {
         </div></Tabs.Panel>
 
         <Tabs.Panel value="portfolio" className="admin-tab-panel"><PortfolioEditor portfolio={draft.portfolio} onChange={(portfolio) => update("portfolio", portfolio)} /></Tabs.Panel>
+
+        <Tabs.Panel value="videos" className="admin-tab-panel"><VideoEditor demonstration={draft.demonstration} onChange={(demonstration) => update("demonstration", demonstration)} /></Tabs.Panel>
 
         <Tabs.Panel value="servicos" className="admin-tab-panel"><div className="editor-stack"><section className="editor-card"><h2>Serviços</h2><TextField label="Texto superior" value={draft.services.eyebrow} onChange={(value) => update("services", { ...draft.services, eyebrow: value })} /><TextField label="Título" value={draft.services.title} onChange={(value) => update("services", { ...draft.services, title: value })} /><TextArea label="Descrição" value={draft.services.description} onChange={(value) => update("services", { ...draft.services, description: value })} /></section>{draft.services.items.map((item, index) => <section className="editor-card" key={index}><h2>Serviço {index + 1}</h2><TextField label="Nome" value={item.title} onChange={(value) => { const items = [...draft.services.items]; items[index] = { ...item, title: value }; update("services", { ...draft.services, items }); }} /><TextArea label="Descrição" value={item.description} onChange={(value) => { const items = [...draft.services.items]; items[index] = { ...item, description: value }; update("services", { ...draft.services, items }); }} /></section>)}</div></Tabs.Panel>
 

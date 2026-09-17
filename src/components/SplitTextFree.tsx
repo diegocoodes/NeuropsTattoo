@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { canUseMotion } from "../utils/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const DEFAULT_FROM: gsap.TweenVars = { opacity: 0, y: 30 };
-const DEFAULT_TO: gsap.TweenVars = { opacity: 1, y: 0 };
+const DEFAULT_FROM: gsap.TweenVars = { y: 30 };
+const DEFAULT_TO: gsap.TweenVars = { y: 0 };
 
 type TagType = "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
@@ -39,7 +40,7 @@ export default function SplitTextFree({
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
-    if (navigator.webdriver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!canUseMotion()) return;
 
     const chars = el.querySelectorAll<HTMLElement>("[data-char]");
 

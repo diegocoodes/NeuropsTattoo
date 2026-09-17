@@ -1,23 +1,28 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useSiteContent } from "../cms/SiteContent";
+import { canUseMotion } from "../utils/motion";
 
 export default function SiteIntro() {
   const { content } = useSiteContent();
   const introRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(
-    () => typeof window === "undefined" || (!navigator.webdriver && !window.matchMedia("(prefers-reduced-motion: reduce)").matches),
-  );
+  const [visible, setVisible] = useState(canUseMotion);
 
   useLayoutEffect(() => {
     const intro = introRef.current;
     if (!intro) return;
     document.body.style.overflow = "hidden";
+
+    let dismissed = false;
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true;
+      document.body.style.overflow = "";
+      setVisible(false);
+    };
+
     const timeline = gsap.timeline({
-      onComplete: () => {
-        document.body.style.overflow = "";
-        setVisible(false);
-      },
+      onComplete: dismiss,
     });
     timeline
       .fromTo(".site-intro-logo", { opacity: 0, scale: .82 }, { opacity: 1, scale: 1, duration: .55, ease: "power3.out" })
@@ -26,7 +31,17 @@ export default function SiteIntro() {
       .to(".site-intro-content", { opacity: 0, y: -12, duration: .3, ease: "power2.in" }, "+=.12")
       .to(intro, { clipPath: "inset(0 0 100% 0)", duration: .75, ease: "power4.inOut" });
 
+    // Nunca deixa a introducao bloquear o site caso a aba ou o motor de
+    // animacao seja pausado pelo navegador.
+    const fallback = window.setTimeout(dismiss, 3500);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && timeline.progress() < 1) dismiss();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
+      window.clearTimeout(fallback);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       timeline.kill();
       document.body.style.overflow = "";
     };

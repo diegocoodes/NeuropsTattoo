@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import Hero from "./sections/Hero";
 import Sobre from "./sections/Sobre";
 import Trabalhos from "./sections/Trabalho";
+import Demonstracao from "./sections/Demonstracao";
 import Servicos from "./sections/Servico";
 import Contato from "./sections/Contato";
 import Localizacao from "./sections/Localizacao";
@@ -34,6 +35,7 @@ export default function App() {
           <Hero />
           <Sobre />
           <Trabalhos />
+          <Demonstracao />
           <Servicos />
           <Contato />
           <Localizacao />

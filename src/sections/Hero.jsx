@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import SplitText from "../components/SplitText";
 import { useSiteContent } from "../cms/SiteContent";
+import { canUseMotion } from "../utils/motion";
 
 export default function Hero() {
   const scopeRef = useRef(null);
@@ -9,16 +10,14 @@ export default function Hero() {
   const { hero } = content;
 
   useLayoutEffect(() => {
-    if (navigator.webdriver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!canUseMotion()) return;
 
     const ctx = gsap.context(() => {
-      const targets = [".hero-title", ".hero-subtitle", ".hero-actions", ".hero-photo-frame"];
-      gsap.set(targets, { opacity: 0 });
       gsap.timeline({ delay: 1.15, defaults: { ease: "power3.out" } })
-        .fromTo(".hero-title", { y: 24 }, { y: 0, opacity: 1, duration: 0.9 })
-        .to(".hero-subtitle", { y: 0, opacity: 1, duration: 0.8 }, "-=0.4")
-        .to(".hero-actions", { y: 0, opacity: 1, duration: 0.7 }, "-=0.4")
-        .to(".hero-photo-frame", { opacity: 1, duration: 0.8 }, "-=0.5");
+        .fromTo(".hero-title", { y: 24 }, { y: 0, duration: 0.9 })
+        .fromTo(".hero-subtitle", { y: 20 }, { y: 0, duration: 0.8 }, "-=0.4")
+        .fromTo(".hero-actions", { y: 16 }, { y: 0, duration: 0.7 }, "-=0.4")
+        .fromTo(".hero-photo-frame", { y: 18, scale: 0.985 }, { y: 0, scale: 1, duration: 0.8 }, "-=0.5");
     }, scopeRef);
     return () => ctx.revert();
   }, []);
@@ -30,8 +29,8 @@ export default function Hero() {
       <div className="hero-left">
         <div className="hero-title">
           <img src={content.brand.symbol} alt={`Símbolo ${content.brand.name}`} className="hero-logo" loading="eager" draggable={false} />
-          <SplitText text={hero.title} tag="h1" className="hero-h1" delay={42} duration={1.1} ease="power3.out" splitType="chars" from={{ opacity: 0, y: 34 }} to={{ opacity: 1, y: 0 }} threshold={0.1} rootMargin="-120px" textAlign="left" />
-          <SplitText text={hero.titleAccent} tag="h1" className="hero-h1 accent" delay={36} duration={1.05} ease="power3.out" splitType="chars" from={{ opacity: 0, y: 34 }} to={{ opacity: 1, y: 0 }} threshold={0.1} rootMargin="-120px" textAlign="left" />
+          <SplitText text={hero.title} tag="h1" className="hero-h1" delay={42} duration={1.1} ease="power3.out" splitType="chars" from={{ y: 34 }} to={{ y: 0 }} threshold={0.1} rootMargin="-120px" textAlign="left" />
+          <SplitText text={hero.titleAccent} tag="h1" className="hero-h1 accent" delay={36} duration={1.05} ease="power3.out" splitType="chars" from={{ y: 34 }} to={{ y: 0 }} threshold={0.1} rootMargin="-120px" textAlign="left" />
         </div>
         <p className="hero-subtitle">{hero.description}</p>
         <div className="hero-actions"><a className="btn primary" href={whatsappLink} target="_blank" rel="noreferrer">{hero.primaryButton}</a><a className="btn ghost" href="#trabalhos">{hero.secondaryButton}</a></div>

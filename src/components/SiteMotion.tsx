@@ -1,21 +1,21 @@
 import { useLayoutEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { canUseMotion, hasFinePointer } from "../utils/motion";
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function SiteMotion() {
   useLayoutEffect(() => {
-    if (navigator.webdriver || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!canUseMotion()) return;
 
     const matchMedia = gsap.matchMedia();
     matchMedia.add("(prefers-reduced-motion: no-preference)", () => {
       gsap.fromTo(".navbar", { yPercent: -100 }, { yPercent: 0, duration: .7, delay: 1.15, ease: "power3.out" });
-      gsap.fromTo(".whatsapp-float", { opacity: 0, scale: .86 }, { opacity: 1, scale: 1, duration: .55, delay: 1.75, ease: "back.out(1.5)" });
+      gsap.fromTo(".whatsapp-float", { scale: .86 }, { scale: 1, duration: .55, delay: 1.75, ease: "back.out(1.5)" });
 
       gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((element) => {
-        gsap.fromTo(element, { opacity: 0, y: 42 }, {
-          opacity: 1,
+        gsap.fromTo(element, { y: 42 }, {
           y: 0,
           duration: .85,
           ease: "power3.out",
@@ -25,8 +25,7 @@ export default function SiteMotion() {
 
       gsap.utils.toArray<HTMLElement>("[data-reveal-group]").forEach((group) => {
         const items = group.querySelectorAll("[data-reveal-item]");
-        gsap.fromTo(items, { opacity: 0, y: 36 }, {
-          opacity: 1,
+        gsap.fromTo(items, { y: 36 }, {
           y: 0,
           duration: .75,
           stagger: .1,
@@ -36,7 +35,7 @@ export default function SiteMotion() {
       });
 
       const cleanups: Array<() => void> = [];
-      if (window.matchMedia("(pointer: fine)").matches) {
+      if (hasFinePointer()) {
         gsap.utils.toArray<HTMLElement>(".btn, .nav-action").forEach((button) => {
           const move = (event: PointerEvent) => {
             const bounds = button.getBoundingClientRect();

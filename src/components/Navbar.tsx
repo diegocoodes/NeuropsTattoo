@@ -26,6 +26,10 @@ export default function Navbar() {
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+    if (!("IntersectionObserver" in window)) {
+      return () => window.removeEventListener("scroll", onScroll);
+    }
+
     const observer = new IntersectionObserver(
       (entries) => entries.forEach((entry) => { if (entry.isIntersecting) setActive(entry.target.id); }),
       { rootMargin: "-35% 0px -55%", threshold: 0 },

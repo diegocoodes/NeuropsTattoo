@@ -347,6 +347,19 @@
 .portfolio-upload-button { display: inline-flex; align-items: center; justify-content: center; }
 .portfolio-upload-button input { display: none; }
 
+.video-upload-button { width: fit-content; display: inline-flex; align-items: center; justify-content: center; }
+.video-upload-button input { display: none; }
+.video-editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.video-editor-card { align-content: start; }
+.video-editor-card video {
+  width: min(100%, 320px);
+  aspect-ratio: 9 / 16;
+  margin-inline: auto;
+  border: 1px solid #303030;
+  background: #080808;
+  object-fit: cover;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .editor-stack { animation: none; }
   .admin-nav-indicator { transition: none; }
@@ -382,6 +395,7 @@
   .admin-topbar h1 { font-size: clamp(2rem, 9vw, 2.8rem); }
   .editor-grid, .color-grid { grid-template-columns: 1fr; }
   .portfolio-upload-controls, .category-add-form { grid-template-columns: 1fr; }
+  .video-editor-grid { grid-template-columns: 1fr; }
   .stat-editor { grid-template-columns: 1fr; }
 }
 

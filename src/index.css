@@ -1269,7 +1269,7 @@ body{
 .work img {
   width: 100%;
   height: auto;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   object-fit: cover;
   object-position: center;
 }
@@ -1907,9 +1907,9 @@ body,
   font-size: 1rem;
 }
 
-/* A imagem usa seu tamanho natural e só reduz quando ultrapassa a tela. */
+/* Mantém a proporção 4:3 da câmera também na visualização ampliada. */
 .lightbox-content{
-  width: max-content;
+  width: auto;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
   display: grid;
@@ -1917,12 +1917,18 @@ body,
   overflow: visible;
 }
 
+.lightbox-media{
+  height: min(720px, calc(100vh - 96px), calc(75vw - 24px));
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #000;
+}
+
 .lightbox-img{
-  width: auto;
-  height: auto;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 96px);
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .lightbox-caption{

@@ -61,7 +61,7 @@ export default function Trabalhos() {
 
     {open && visibleWorks[index] && <div className="lightbox" role="dialog" aria-modal="true">
       <button className="lightbox-backdrop" aria-label="Fechar" onClick={() => setOpen(false)} />
-      <div className="lightbox-content"><img src={visibleWorks[index].image} alt={visibleWorks[index].title} className="lightbox-img" /><div className="lightbox-caption">{visibleWorks[index].title}</div><button className="icon-btn left" aria-label="Imagem anterior" onClick={prev}>‹</button><button className="icon-btn right" aria-label="Próxima imagem" onClick={next}>›</button><button className="icon-btn close" aria-label="Fechar" onClick={() => setOpen(false)}>×</button></div>
+      <div className="lightbox-content"><div className="lightbox-media"><img src={visibleWorks[index].image} alt={visibleWorks[index].title} className="lightbox-img" /></div><div className="lightbox-caption">{visibleWorks[index].title}</div><button className="icon-btn left" aria-label="Imagem anterior" onClick={prev}>‹</button><button className="icon-btn right" aria-label="Próxima imagem" onClick={next}>›</button><button className="icon-btn close" aria-label="Fechar" onClick={() => setOpen(false)}>×</button></div>
     </div>}
   </>;
 }

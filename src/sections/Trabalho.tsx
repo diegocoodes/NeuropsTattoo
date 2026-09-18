@@ -50,7 +50,7 @@ export default function Trabalhos() {
           {categories.map((item) => <button key={item} type="button" className={activeCategory === item ? "active" : ""} aria-pressed={activeCategory === item} onClick={() => chooseCategory(item)}>{item}</button>)}
         </nav>
 
-        <div className="works-grid" key={activeCategory} data-reveal-group>
+        <div className={`works-grid${activeCategory === "Todos" ? " works-grid--all" : ""}`} key={activeCategory} data-reveal-group>
           {visibleWorks.map((work, itemIndex) => <button key={`${work.image}-${itemIndex}`} type="button" className="work" aria-label={`Ampliar ${work.title}`} onClick={() => { setIndex(itemIndex); setOpen(true); }} data-reveal-item>
             <img src={work.image} alt={work.title} loading="lazy" />
           </button>)}

@@ -1676,7 +1676,13 @@ body{
 .about-copy .btn{ margin-top: 7px; }
 
 /* Portfólio */
-.work{ align-self: start; border-radius: 0; border-color: rgba(255,255,255,.1); background: #080808; }
+.work{
+  align-self: start;
+  aspect-ratio: 3 / 4;
+  border-radius: 0;
+  border-color: rgba(255,255,255,.1);
+  background: #080808;
+}
 .work::after{
   content: "";
   position: absolute;
@@ -1685,7 +1691,13 @@ body{
   transition: border-color .35s ease;
   pointer-events: none;
 }
-.work img{ transition: transform .7s cubic-bezier(.2,.8,.2,1), filter .45s ease; }
+.work img{
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: contain;
+  transition: transform .7s cubic-bezier(.2,.8,.2,1), filter .45s ease;
+}
 .work:hover{ transform: translateY(-5px); }
 .work:hover::after{ border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 .work:hover img{ filter: contrast(1.08) saturate(.9); }

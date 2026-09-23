@@ -179,9 +179,9 @@ app.post("/api/media", async (c) => {
   const form = await c.req.formData();
   const file = form.get("file");
   const mediaTypes: Record<string, { extension: string; maxSize: number; label: string }> = {
-    "image/webp": { extension: "webp", maxSize: 2_000_000, label: "Imagem" },
-    "image/png": { extension: "png", maxSize: 2_000_000, label: "Imagem" },
-    "image/jpeg": { extension: "jpg", maxSize: 2_000_000, label: "Imagem" },
+    "image/webp": { extension: "webp", maxSize: 20_000_000, label: "Imagem" },
+    "image/png": { extension: "png", maxSize: 20_000_000, label: "Imagem" },
+    "image/jpeg": { extension: "jpg", maxSize: 20_000_000, label: "Imagem" },
     "video/mp4": { extension: "mp4", maxSize: 50_000_000, label: "Vídeo" },
     "video/webm": { extension: "webm", maxSize: 50_000_000, label: "Vídeo" },
   };

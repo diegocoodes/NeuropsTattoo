@@ -10,7 +10,6 @@ const VIDEO_SLOT_COUNT = 3;
 const imagePresets = {
   logo: { width: 480, height: 480, fit: "contain", description: "quadrado, sem cortes" },
   hero: { width: 630, height: 780, fit: "cover", description: "vertical, corte central" },
-  portfolio: { width: 720, height: 1280, fit: "cover", description: "vertical 9:16, corte central" },
 } satisfies Record<string, ImagePreset>;
 
 function formatImage(file: File, preset: ImagePreset): Promise<Blob> {
@@ -49,6 +48,19 @@ function formatImage(file: File, preset: ImagePreset): Promise<Blob> {
 async function uploadImage(file: File, preset: ImagePreset) {
   const form = new FormData();
   form.append("file", await formatImage(file, preset), file.name);
+  const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
+  const result = await response.json().catch(() => null) as { url?: string; error?: string } | null;
+  if (!response.ok || !result?.url) throw new Error(result?.error || "Não foi possível enviar a imagem.");
+  return result.url;
+}
+
+async function uploadOriginalImage(file: File) {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    throw new Error("Envie uma imagem JPG, PNG ou WebP.");
+  }
+  if (file.size > 20_000_000) throw new Error("A imagem deve ter no máximo 20 MB.");
+  const form = new FormData();
+  form.append("file", file, file.name);
   const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
   const result = await response.json().catch(() => null) as { url?: string; error?: string } | null;
   if (!response.ok || !result?.url) throw new Error(result?.error || "Não foi possível enviar a imagem.");
@@ -99,11 +111,13 @@ function ImageField({
   value,
   onChange,
   preset,
+  preserveOriginal = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  preset: ImagePreset;
+  preset?: ImagePreset;
+  preserveOriginal?: boolean;
 }) {
   const [processing, setProcessing] = useState(false);
   const upload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +125,7 @@ function ImageField({
     if (!file) return;
     setProcessing(true);
     try {
-      onChange(await uploadImage(file, preset));
+      onChange(preserveOriginal ? await uploadOriginalImage(file) : await uploadImage(file, preset!));
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não foi possível processar a imagem.");
     } finally {
@@ -126,8 +140,10 @@ function ImageField({
         <img src={value} alt="Pré-visualização" />
         <div>
           <input value={value} onChange={(event) => onChange(event.target.value)} />
-          <label className="upload-button">{processing ? "Formatando..." : "Enviar imagem"}<input type="file" accept="image/*" onChange={upload} disabled={processing} /></label>
-          <small className="field-help">Formato automático: {preset.description} ({preset.width} × {preset.height}px).</small>
+          <label className="upload-button">{processing ? "Enviando..." : "Enviar imagem"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={processing} /></label>
+          <small className="field-help">{preserveOriginal
+            ? "A imagem será mantida no tamanho e formato originais (máximo de 20 MB)."
+            : `Formato automático: ${preset!.description} (${preset!.width} × ${preset!.height}px).`}</small>
         </div>
       </div>
     </Field>
@@ -192,7 +208,7 @@ function PortfolioEditor({
       const uploaded = await Promise.all(files.map(async (file) => ({
         title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "),
         category: uploadCategory,
-        image: await uploadImage(file, imagePresets.portfolio),
+        image: await uploadOriginalImage(file),
       })));
       onChange({ ...portfolio, items: [...portfolio.items, ...uploaded] });
     } catch (error) {
@@ -248,7 +264,7 @@ function PortfolioEditor({
         </Field>
         <label className="admin-primary portfolio-upload-button">
           {uploading ? "Enviando imagens..." : "Selecionar imagens"}
-          <input type="file" accept="image/*" multiple onChange={addImages} disabled={uploading || !portfolio.categories.length} />
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={addImages} disabled={uploading || !portfolio.categories.length} />
         </label>
       </div>
     </section>
@@ -261,7 +277,7 @@ function PortfolioEditor({
         <option value="">Sem categoria</option>
         {portfolio.categories.map((category) => <option key={category} value={category}>{category}</option>)}
       </select></Field>
-      <ImageField label="Imagem" value={item.image} preset={imagePresets.portfolio} onChange={(image) => updateItem(index, { ...item, image })} />
+      <ImageField label="Imagem" value={item.image} preserveOriginal onChange={(image) => updateItem(index, { ...item, image })} />
     </section>)}
   </div>;
 }

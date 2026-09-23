@@ -1269,8 +1269,7 @@ body{
 .work img {
   width: 100%;
   height: auto;
-  aspect-ratio: 9 / 16;
-  object-fit: cover;
+  aspect-ratio: auto;
   object-position: center;
 }
 
@@ -1675,7 +1674,7 @@ body{
 .about-copy .btn{ margin-top: 7px; }
 
 /* Portfólio */
-.work{ border-radius: 0; border-color: rgba(255,255,255,.1); background: #080808; }
+.work{ align-self: start; border-radius: 0; border-color: rgba(255,255,255,.1); background: #080808; }
 .work::after{
   content: "";
   position: absolute;
@@ -1919,7 +1918,7 @@ body,
   font-size: 1rem;
 }
 
-/* Mantém a proporção vertical 9:16 também na visualização ampliada. */
+/* A moldura acompanha a proporção original de cada imagem. */
 .lightbox-content{
   width: auto;
   max-width: calc(100vw - 32px);
@@ -1930,16 +1929,20 @@ body,
 }
 
 .lightbox-media{
-  height: min(960px, calc(100vh - 96px), calc(177.7778vw - 56.8889px));
-  aspect-ratio: 9 / 16;
+  width: auto;
+  height: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 96px);
   overflow: hidden;
   background: #000;
 }
 
 .lightbox-img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: auto;
+  height: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 96px);
+  object-fit: contain;
   object-position: center;
 }
 

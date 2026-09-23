@@ -47,8 +47,11 @@ function formatImage(file: File, preset: ImagePreset): Promise<Blob> {
 }
 
 async function uploadImage(file: File, preset: ImagePreset) {
+  const formatted = await formatImage(file, preset);
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "imagem";
+  const extension = formatted.type === "image/png" ? "png" : "webp";
   const form = new FormData();
-  form.append("file", await formatImage(file, preset), file.name);
+  form.append("file", formatted, `${baseName}.${extension}`);
   const response = await fetch("/api/media", { method: "POST", body: form, credentials: "same-origin" });
   const result = await response.json().catch(() => null) as { url?: string; error?: string } | null;
   if (!response.ok || !result?.url) throw new Error(result?.error || "Não foi possível enviar a imagem.");

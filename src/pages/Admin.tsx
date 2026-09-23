@@ -10,7 +10,7 @@ const VIDEO_SLOT_COUNT = 3;
 const imagePresets = {
   logo: { width: 480, height: 480, fit: "contain", description: "quadrado, sem cortes" },
   hero: { width: 630, height: 780, fit: "cover", description: "vertical, corte central" },
-  portfolio: { width: 960, height: 540, fit: "cover", description: "horizontal 16:9, corte central" },
+  portfolio: { width: 720, height: 1280, fit: "cover", description: "vertical 9:16, corte central" },
 } satisfies Record<string, ImagePreset>;
 
 function formatImage(file: File, preset: ImagePreset): Promise<Blob> {

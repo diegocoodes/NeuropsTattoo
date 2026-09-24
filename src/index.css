@@ -1269,8 +1269,8 @@ body{
 .work img {
   width: 100%;
   height: auto;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
+  aspect-ratio: auto;
+  object-fit: contain;
   object-position: center;
   background: #080808;
 }
@@ -1678,7 +1678,7 @@ body{
 /* Portfólio */
 .work{
   align-self: start;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: auto;
   border-radius: 0;
   border-color: rgba(255,255,255,.1);
   background: #080808;
@@ -1693,9 +1693,9 @@ body{
 }
 .work img{
   width: 100%;
-  height: 100%;
+  height: auto;
   aspect-ratio: auto;
-  object-fit: cover;
+  object-fit: contain;
   transition: transform .7s cubic-bezier(.2,.8,.2,1), filter .45s ease;
 }
 .work:hover{ transform: translateY(-5px); }
@@ -1932,7 +1932,7 @@ body,
   font-size: 1rem;
 }
 
-/* Mantém todas as imagens no padrão vertical 1080 × 1440 (3:4). */
+/* A visualização ampliada acompanha a proporção original da imagem. */
 .lightbox-content{
   width: auto;
   max-width: calc(100vw - 32px);
@@ -1943,16 +1943,20 @@ body,
 }
 
 .lightbox-media{
-  height: min(960px, calc(100vh - 96px), calc(133.3333vw - 42.6667px));
-  aspect-ratio: 3 / 4;
+  width: auto;
+  height: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 96px);
   overflow: hidden;
   background: #000;
 }
 
 .lightbox-img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: auto;
+  height: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 96px);
+  object-fit: contain;
   object-position: center;
 }
 

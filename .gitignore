@@ -17,6 +17,7 @@ dist-ssr
 generated/
 .prisma/
 server/.generated/
+public/portfolio/image.png
 
 # Editor directories and files
 .vscode/*

@@ -80,7 +80,7 @@ body{
   width: 46px;
   height: 44px;
   border-radius: 14px;
-  cursor: pointer;
+  cursor: default;
   display: grid;
   place-items: center;
   gap: 6px;
@@ -1698,9 +1698,9 @@ body{
   object-fit: cover;
   transition: transform .7s cubic-bezier(.2,.8,.2,1), filter .45s ease;
 }
-.work:hover{ transform: translateY(-5px); }
+.work:hover{ transform: none; }
 .work:hover::after{ border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
-.work:hover img{ filter: contrast(1.08) saturate(.9); }
+.work:hover img{ filter: saturate(1.02) contrast(1.02); }
 
 /* Serviços */
 .services-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
